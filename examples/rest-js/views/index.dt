@@ -1,0 +1,16 @@
+doctype html
+html
+	head
+		script(src="test.js")
+	body
+		h1 Calculator
+		input#a
+		| +
+		input#b
+		button(onclick="ITest.computeSum(getElementById('a').value, getElementById('b').value, function (r) { getElementById('res').innerHTML = r; })") Compute sum
+		p Result:
+			span#res
+
+		h2 Console
+		input#test
+		button(onclick="ITest.postToConsole(getElementById('test').value)") Write to console
