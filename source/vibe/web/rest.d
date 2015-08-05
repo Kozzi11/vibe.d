@@ -248,6 +248,48 @@ unittest
 
 
 /**
+	Returns a HTTP handler delegate that serves a JavaScript REST client.
+*/
+HTTPServerRequestDelegate serveRestJSClient(TImpl)(RestInterfaceSettings settings = null)
+{
+	import std.digest.md : md5Of;
+	import std.digest.digest : toHexString;
+	import std.array : appender;
+	import vibe.http.server : HTTPServerRequest, HTTPServerResponse;
+	import vibe.http.status : HTTPStatus;
+	
+	auto app = appender!string();
+	generateRestJSClient!TImpl(app, settings);
+	auto hash = app.data.md5Of.toHexString.idup;
+
+	void serve(HTTPServerRequest req, HTTPServerResponse res)
+	{
+		if (auto pv = "If-None-Match" in res.headers) {
+			res.statusCode = HTTPStatus.notModified;
+			res.writeVoidBody();
+			return;
+		}
+
+		res.headers["Etag"] = hash;
+		res.writeBody(app.data, "application/javascript; charset=UTF-8");
+	}
+
+	return &serve;
+}
+
+
+/**
+	Generates JavaScript code to access a REST interface from the browser.
+*/
+void generateRestJSClient(TImpl, R)(ref R output, RestInterfaceSettings settings = null)
+{
+	import vibe.web.internal.rest.common : RestInterface;
+	import vibe.web.internal.rest.jsclient : generateInterface;
+	output.generateInterface!TImpl(null, settings);
+}
+
+
+/**
 	Implements the given interface by forwarding all public methods to a REST server.
 
 	The server must talk the same protocol as registerRestInterface() generates. Be sure to set
