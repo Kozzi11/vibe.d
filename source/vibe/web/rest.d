@@ -659,6 +659,7 @@ private HTTPServerRequestDelegate jsonMethodHandler(alias Func, size_t ridx, T)(
 				res.writeJsonBody(Json.emptyObject);
 			} else {
 				auto ret = __traits(getMember, inst, Method)(params);
+				ret = evaluateOutputModifiers!Func(ret, req, res);
 				returnHeaders();
 				res.writeJsonBody(ret);
 			}
