@@ -9,6 +9,7 @@ import vibe.web.rest;
 	The given `TImpl` must be an `interface` or a `class` deriving from one.
 */
 /*package(vibe.web.web)*/ struct RestInterface(TImpl)
+	if (is(TImpl == class) || is(TImpl == interface))
 {
 	import std.traits : FunctionTypeOf, InterfacesTuple, MemberFunctionsTuple,
 		ParameterIdentifierTuple, ParameterStorageClass,
@@ -174,6 +175,8 @@ import vibe.web.rest;
 
 	private static StaticRoute[routeCount] computeStaticRoutes()
 	{
+		assert(__ctfe);
+
 		StaticRoute[routeCount] ret;
 
 		foreach (fi, func; RouteFunctions) {
