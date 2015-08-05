@@ -583,7 +583,6 @@ class RestInterfaceSettings {
 private HTTPServerRequestDelegate jsonMethodHandler(alias Func, size_t ridx, T)(T inst, ref RestInterface!T intf)
 {
 	import std.string : format;
-	//import std.traits : ParameterIdentifierTuple;
 	import vibe.http.server : HTTPServerRequest, HTTPServerResponse;
 	import vibe.http.common : HTTPStatusException, HTTPStatus, enforceBadRequest;
 	import vibe.utils.string : sanitizeUTF8;
@@ -593,15 +592,15 @@ private HTTPServerRequestDelegate jsonMethodHandler(alias Func, size_t ridx, T)(
 
 	enum Method = __traits(identifier, Func);
 	alias PTypes = ParameterTypeTuple!Func;
-	enum PNames = [ParameterIdentifierTuple!Func];
 	alias PDefaults = ParameterDefaultValueTuple!Func;
 	alias RT = ReturnType!(FunctionTypeOf!Func);
+	static const sroute = intf.staticRoutes[ridx];
 	auto route = intf.routes[ridx];
 
 	void handler(HTTPServerRequest req, HTTPServerResponse res)
 	{
 		if (route.bodyParameters.length) {
-			logInfo("BODYPARAMS: %s %s", Method, route.bodyParameters.length);
+			logDebug("BODYPARAMS: %s %s", Method, route.bodyParameters.length);
 			/*enforceBadRequest(req.contentType == "application/json",
 				"The Content-Type header needs to be set to application/json.");*/
 			enforceBadRequest(req.json.type != Json.Type.undefined,
@@ -613,24 +612,26 @@ private HTTPServerRequestDelegate jsonMethodHandler(alias Func, size_t ridx, T)(
 		PTypes params;
 
 		foreach (i, PT; PTypes) {
-			auto pinfo = route.parameters[i];
-			enum pname = PNames[i];
+			enum sparam = sroute.parameters[i];
+			enum pname = sparam.name;
+			auto fieldname = route.parameters[i].fieldName;
 			Nullable!PT v;
-			final switch (pinfo.kind) { // TODO: make this a CT decision
-				case ParameterKind.query: v = fromRestString!PT(req.query[pinfo.fieldName]); break;
-				case ParameterKind.body_: v = deserializeJson!PT(req.json[pinfo.fieldName]); break;
-				case ParameterKind.header: v = fromRestString!PT(req.headers[pinfo.fieldName]); break;
-				case ParameterKind.attributed:
-					static if (IsAttributedParameter!(Func, pname)) { // Workaround for non-CT switch
-						v = computeAttributedParameterCtx!(Func, pname)(inst, req, res);
-						break;
-					} else assert(false);
-				case ParameterKind.internal: v = fromRestString!PT(urlDecode(req.params[pinfo.fieldName])); break;
-			}
+
+			static if (sparam.kind == ParameterKind.query)
+				v = fromRestString!PT(req.query[fieldname]);
+			else static if (sparam.kind == ParameterKind.body_)
+				v = deserializeJson!PT(req.json[fieldname]);
+			else static if (sparam.kind == ParameterKind.header)
+				v = fromRestString!PT(req.headers[fieldname]);
+			else static if (sparam.kind == ParameterKind.attributed)
+				v = computeAttributedParameterCtx!(Func, pname)(inst, req, res);
+			else static if (sparam.kind == ParameterKind.internal)
+				v = fromRestString!PT(urlDecode(req.params[fieldname]));
+			else static assert(false, "Unhandled parameter kind.");
 
 			if (v.isNull()) {
 				static if (!is(PDefaults[i] == void)) params[i] = PDefaults[i];
-				else enforceBadRequest(false, "Missing non-optional "~pinfo.kind.to!string~" parameter '"~(pinfo.fieldName.length?pinfo.fieldName:pinfo.name)~"'.");
+				else enforceBadRequest(false, "Missing non-optional "~sparam.kind.to!string~" parameter '"~(fieldname.length?fieldname:sparam.name)~"'.");
 			} else params[i] = v;
 		}
 
@@ -638,8 +639,8 @@ private HTTPServerRequestDelegate jsonMethodHandler(alias Func, size_t ridx, T)(
 		void returnHeaders()
 		{
 			foreach (i, P; PTypes) {
-				if (route.parameters[i].isOut) { // TODO: make CT
-					assert (route.parameters[i].kind == ParameterKind.header); // TODO: make CT
+				static if (sroute.parameters[i].isOut) {
+					static assert (sroute.parameters[i].kind == ParameterKind.header);
 					static if (isInstanceOf!(Nullable, typeof(params[i]))) {
 						if (!params[i].isNull)
 							res.headers[route.parameters[i].fieldName] = to!string(params[i]);
