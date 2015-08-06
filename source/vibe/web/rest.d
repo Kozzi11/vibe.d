@@ -21,6 +21,7 @@ import vibe.inet.message : InetHeaderMap;
 import vibe.web.internal.rest.common : RestInterface;
 
 import std.algorithm : startsWith, endsWith;
+import std.range : isOutputRange;
 import std.typetuple : anySatisfy, Filter;
 import std.traits;
 
@@ -181,7 +182,8 @@ unittest
 /**
 	Returns a HTTP handler delegate that serves a JavaScript REST client.
 */
-HTTPServerRequestDelegate serveRestJSClient(TImpl)(RestInterfaceSettings settings = null)
+HTTPServerRequestDelegate serveRestJSClient(I)(RestInterfaceSettings settings = null)
+	if (is(I == interface))
 {
 	import std.digest.md : md5Of;
 	import std.digest.digest : toHexString;
@@ -190,7 +192,7 @@ HTTPServerRequestDelegate serveRestJSClient(TImpl)(RestInterfaceSettings setting
 	import vibe.http.status : HTTPStatus;
 	
 	auto app = appender!string();
-	generateRestJSClient!TImpl(app, settings);
+	generateRestJSClient!I(app, settings);
 	auto hash = app.data.md5Of.toHexString.idup;
 
 	void serve(HTTPServerRequest req, HTTPServerResponse res)
@@ -244,10 +246,11 @@ unittest {
 /**
 	Generates JavaScript code to access a REST interface from the browser.
 */
-void generateRestJSClient(TImpl, R)(ref R output, RestInterfaceSettings settings = null)
+void generateRestJSClient(I, R)(ref R output, RestInterfaceSettings settings = null)
+	if (is(I == interface) && isOutputRange!(R, char))
 {
 	import vibe.web.internal.rest.jsclient : generateInterface;
-	output.generateInterface!TImpl(null, settings);
+	output.generateInterface!I(null, settings);
 }
 
 /// Writes a JavaScript REST client to a local .js file.

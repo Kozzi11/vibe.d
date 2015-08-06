@@ -32,7 +32,7 @@ shared static this()
 
 	auto router = new URLRouter;
 	// Serve the generated JavaScript client at /test.js
-	router.get("/test.js", serveRestJSClient!Test(restsettings));
+	router.get("/test.js", serveRestJSClient!ITest(restsettings));
 	// Serve an example page at /
 	// The page will use the test.js script to issue calls to the
 	// REST service.
