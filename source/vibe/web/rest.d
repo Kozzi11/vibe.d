@@ -208,6 +208,38 @@ HTTPServerRequestDelegate serveRestJSClient(TImpl)(RestInterfaceSettings setting
 	return &serve;
 }
 
+///
+unittest {
+	import vibe.http.server;
+
+	interface MyAPI {
+		string getFoo();
+		void postBar(string param);
+	}
+
+	void test()
+	{
+		auto restsettings = new RestInterfaceSettings;
+		restsettings.baseURL = URL("http://api.example.org/");
+
+		auto router = new URLRouter;
+		router.get("/myapi.js", serveRestJSClient!MyAPI());
+		//router.get("/", staticTemplate!"index.dt");
+
+		listenHTTP(new HTTPServerSettings, router);
+	}
+
+	/*
+		index.dt:
+		html
+			head
+				title JS REST client test
+				script(src="test.js")
+			body
+				button(onclick="MyAPI.postBar('hello');")
+	*/
+}
+
 
 /**
 	Generates JavaScript code to access a REST interface from the browser.
@@ -216,6 +248,23 @@ void generateRestJSClient(TImpl, R)(ref R output, RestInterfaceSettings settings
 {
 	import vibe.web.internal.rest.jsclient : generateInterface;
 	output.generateInterface!TImpl(null, settings);
+}
+
+/// Writes a JavaScript REST client to a local .js file.
+unittest {
+	import vibe.core.file;
+
+	interface MyAPI {
+		void getFoo();
+		void postBar(string param);
+	}
+
+	void generateJSClientImpl()
+	{
+		auto app = appender!string;
+		generateRestJSClient!MyAPI(app);
+		writeFileUTF8(Path("myapi.js"), app.data);
+	}
 }
 
 

@@ -1,8 +1,18 @@
+/**
+	Internal module with functions to generate JavaScript REST interfaces.
+
+	Copyright: © 2015 RejectedSoftware e.K.
+	License: Subject to the terms of the MIT license, as written in the included LICENSE.txt file.
+	Authors: Sönke Ludwig
+*/
 module vibe.web.internal.rest.jsclient;
 
 import vibe.web.rest;
 
 
+/**
+	Generates JavaScript code suitable for accessing a REST interface using XHR.
+*/
 /*package(vibe.web.web)*/ void generateInterface(TImpl, R)(ref R output, string name, RestInterfaceSettings settings)
 {
 	// TODO: handle attributed parameters and filter out internal parameters that have no path placeholder assigned to them

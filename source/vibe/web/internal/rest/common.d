@@ -1,3 +1,10 @@
+/**
+	Internal module with common functionality for REST interface generators.
+
+	Copyright: © 2015 RejectedSoftware e.K.
+	License: Subject to the terms of the MIT license, as written in the included LICENSE.txt file.
+	Authors: Sönke Ludwig
+*/
 module vibe.web.internal.rest.common;
 
 import vibe.web.rest;
