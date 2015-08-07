@@ -646,7 +646,7 @@ private HTTPServerRequestDelegate jsonMethodHandler(alias Func, size_t ridx, T)(
 	alias PTypes = ParameterTypeTuple!Func;
 	alias PDefaults = ParameterDefaultValueTuple!Func;
 	alias RT = ReturnType!(FunctionTypeOf!Func);
-	static const sroute = intf.staticRoutes[ridx];
+	static const sroute = RestInterface!T.staticRoutes[ridx];
 	auto route = intf.routes[ridx];
 
 	void handler(HTTPServerRequest req, HTTPServerResponse res)
