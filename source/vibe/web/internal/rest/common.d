@@ -198,6 +198,7 @@ import vibe.web.rest;
 			enum meta = extractHTTPMethodAndName!(func, false)();
 			route.method = meta.method;
 			route.rawName = meta.url;
+			route.pathOverride = meta.hadPathUDA;
 
 			foreach (i, PT; ParameterTypes) {
 				enum pname = parameterNames[i];
