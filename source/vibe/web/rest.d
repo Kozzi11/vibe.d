@@ -667,21 +667,27 @@ private HTTPServerRequestDelegate jsonMethodHandler(alias Func, size_t ridx, T)(
 			enum sparam = sroute.parameters[i];
 			enum pname = sparam.name;
 			auto fieldname = route.parameters[i].fieldName;
-			Nullable!PT v;
+			static if (isInstanceOf!(Nullable, PT)) PT v;
+			else Nullable!PT v;
 
-			static if (sparam.kind == ParameterKind.query)
-				v = fromRestString!PT(req.query[fieldname]);
-			else static if (sparam.kind == ParameterKind.body_)
-				v = deserializeJson!PT(req.json[fieldname]);
-			else static if (sparam.kind == ParameterKind.header)
-				v = fromRestString!PT(req.headers[fieldname]);
-			else static if (sparam.kind == ParameterKind.attributed)
+			static if (sparam.kind == ParameterKind.query) {
+				if (auto pv = fieldname in req.query)
+					v = fromRestString!PT(*pv);
+			} else static if (sparam.kind == ParameterKind.body_) {
+				if (auto pv = fieldname in req.json)
+					v = deserializeJson!PT(*pv);
+			} else static if (sparam.kind == ParameterKind.header) {
+				if (auto pv = fieldname in req.headers)
+					v = fromRestString!PT(*pv);
+			} else static if (sparam.kind == ParameterKind.attributed) {
 				v = computeAttributedParameterCtx!(Func, pname)(inst, req, res);
-			else static if (sparam.kind == ParameterKind.internal)
-				v = fromRestString!PT(urlDecode(req.params[fieldname]));
-			else static assert(false, "Unhandled parameter kind.");
+			} else static if (sparam.kind == ParameterKind.internal) {
+				if (auto pv = fieldname in req.params)
+					v = fromRestString!PT(urlDecode(*pv));
+			} else static assert(false, "Unhandled parameter kind.");
 
-			if (v.isNull()) {
+			static if (isInstanceOf!(Nullable, PT)) params[i] = v;
+			else if (v.isNull()) {
 				static if (!is(PDefaults[i] == void)) params[i] = PDefaults[i];
 				else enforceBadRequest(false, "Missing non-optional "~sparam.kind.to!string~" parameter '"~(fieldname.length?fieldname:sparam.name)~"'.");
 			} else params[i] = v;
