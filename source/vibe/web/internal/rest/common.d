@@ -103,11 +103,19 @@ import vibe.web.rest;
 		Params:
 			settings = Optional settings object.
 	*/
-	this(RestInterfaceSettings settings)
+	this(RestInterfaceSettings settings, bool is_client)
 	{
 		import vibe.internal.meta.uda : findFirstUDA;
 
 		this.settings = settings ? settings.dup : new RestInterfaceSettings;
+		if (is_client) {
+			assert(this.settings.baseURL != URL.init,
+				"RESTful clients need to have a valid RestInterfaceSettings.baseURL set.");
+		} else if (this.settings.baseURL == URL.init) {
+			// use a valid dummy base URL to be able to construct sub-URLs
+			// for nested interfaces
+			this.settings.baseURL = URL("http://localhost/");
+		}
 		this.basePath = this.settings.baseURL.path.toString();
 
 		enum uda = findFirstUDA!(PathAttribute, I);

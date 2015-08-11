@@ -25,7 +25,7 @@ import vibe.web.rest;
 	import vibe.web.internal.rest.common;
 	import vibe.web.common;
 
-	auto intf = RestInterface!TImpl(settings);
+	auto intf = RestInterface!TImpl(settings, true);
 
 	output.formattedWrite("%s = new function() {\n", name.length ? name : intf.I.stringof);
 

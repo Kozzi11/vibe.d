@@ -69,7 +69,7 @@ void registerRestInterface(TImpl)(URLRouter router, TImpl instance, RestInterfac
 	import std.array : array;
 	import vibe.web.internal.rest.common : ParameterKind;
 
-	auto intf = RestInterface!TImpl(settings);
+	auto intf = RestInterface!TImpl(settings, false);
 
 	foreach (i, T; intf.SubInterfaceTypes) {
 		enum fname = __traits(identifier, intf.SubInterfaceFunctions[i]);
@@ -182,7 +182,7 @@ unittest
 /**
 	Returns a HTTP handler delegate that serves a JavaScript REST client.
 */
-HTTPServerRequestDelegate serveRestJSClient(I)(RestInterfaceSettings settings = null)
+HTTPServerRequestDelegate serveRestJSClient(I)(RestInterfaceSettings settings)
 	if (is(I == interface))
 {
 	import std.digest.md : md5Of;
@@ -190,7 +190,7 @@ HTTPServerRequestDelegate serveRestJSClient(I)(RestInterfaceSettings settings = 
 	import std.array : appender;
 	import vibe.http.server : HTTPServerRequest, HTTPServerResponse;
 	import vibe.http.status : HTTPStatus;
-	
+
 	auto app = appender!string();
 	generateRestJSClient!I(app, settings);
 	auto hash = app.data.md5Of.toHexString.idup;
@@ -208,6 +208,20 @@ HTTPServerRequestDelegate serveRestJSClient(I)(RestInterfaceSettings settings = 
 	}
 
 	return &serve;
+}
+/// ditto
+HTTPServerRequestDelegate serveRestJSClient(I)(URL base_url)
+{
+	auto settings = new RestInterfaceSettings;
+	settings.baseURL = base_url;
+	return serveRestJSClient(settings);
+}
+/// ditto
+HTTPServerRequestDelegate serveRestJSClient(I)(string base_url)
+{
+	auto settings = new RestInterfaceSettings;
+	settings.baseURL = URL(base_url);
+	return serveRestJSClient(settings);
 }
 
 ///
@@ -578,7 +592,7 @@ unittest
 class RestInterfaceSettings {
 	/** The public URL below which the REST interface is registered.
 	*/
-	URL baseURL = URL("http://api.example.com/");
+	URL baseURL;
 
 	/** Naming convention used for the generated URLs.
 	*/
