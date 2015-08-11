@@ -925,6 +925,7 @@ private mixin template RestClientMethods_OverloadImpl(Overloads...) {
 private string genClientBody(alias Func)() {
 	import std.string : format;
 	import vibe.internal.meta.funcattr : IsAttributedParameter;
+	import vibe.web.internal.rest.common : ParameterKind;
 
 	alias PSC = ParameterStorageClass;
 	alias FT = FunctionTypeOf!Func;
@@ -967,7 +968,7 @@ private string genClientBody(alias Func)() {
 					url_prefix = q{urlEncode(toRestString(serializeToJson(id)))~"/"};
 			} else static if (anySatisfy!(mixin(CompareParamName.Name), WPAT)) {
 				alias PWPAT = Filter!(mixin(CompareParamName.Name), WPAT);
-				static if (PWPAT[0].origin == WebParamAttribute.Origin.Header) {
+				static if (PWPAT[0].origin == ParameterKind.header) {
 					// Don't send 'out' parameter, as they should be default init anyway and it might confuse some server
 					static if (!(PSCT[i] & PSC.out_)) {
 						param_handling_str ~= format(q{headers__["%s"] = to!string(%s);}, PWPAT[0].field, PWPAT[0].identifier);
@@ -990,12 +991,12 @@ private string genClientBody(alias Func)() {
 							}.format(ParamNames[i], PWPAT[0].field);
 						}
 					}
-				} else static if (PWPAT[0].origin == WebParamAttribute.Origin.Query)
+				} else static if (PWPAT[0].origin == ParameterKind.query)
 					queryParamCTMap[PWPAT[0].field] = PWPAT[0].identifier;
-				else static if (PWPAT[0].origin == WebParamAttribute.Origin.Body)
+				else static if (PWPAT[0].origin == ParameterKind.body_)
 					bodyParamCTMap[PWPAT[0].field] = PWPAT[0].identifier;
 				else
-					static assert (0, "Internal error: Unknown WebParamAttribute.Origin in REST client code generation.");
+					static assert (0, "Internal error: Unknown ParameterKind in REST client code generation.");
 			} else static if (!ParamNames[i].startsWith("_")
 					  && !IsAttributedParameter!(Func, ParamNames[i])) {
 				// underscore parameters are sourced from the HTTPServerRequest.params map or from url itself
@@ -1146,6 +1147,7 @@ unittest
 package string getInterfaceValidationError(I)()
 out (result) { assert((result is null) == !result.length); }
 body {
+	import vibe.web.internal.rest.common : ParameterKind;
 	import std.typetuple : TypeTuple;
 	import std.algorithm : strip;
 
@@ -1209,7 +1211,7 @@ body {
 				static if (Attr.length != 1)
 					return "%s: Parameter '%s' cannot be %s"
 						.format(FuncId, PN[i], SC & PSC.out_ ? "out" : "ref");
-				else static if (Attr[0].origin != WebParamAttribute.Origin.Header) {
+				else static if (Attr[0].origin != ParameterKind.header) {
 					return "%s: %s parameter '%s' cannot be %s"
 						.format(FuncId, Attr[0].origin, PN[i],
 							SC & PSC.out_ ? "out" : "ref");
