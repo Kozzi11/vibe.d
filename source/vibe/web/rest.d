@@ -239,7 +239,7 @@ unittest {
 		restsettings.baseURL = URL("http://api.example.org/");
 
 		auto router = new URLRouter;
-		router.get("/myapi.js", serveRestJSClient!MyAPI());
+		router.get("/myapi.js", serveRestJSClient!MyAPI(restsettings));
 		//router.get("/", staticTemplate!"index.dt");
 
 		listenHTTP(new HTTPServerSettings, router);
@@ -1283,7 +1283,7 @@ body {
 
 // Test detection of user typos (e.g., if the attribute is on a parameter that doesn't exist).
 unittest {
-	enum msg = "No parameter 'ath' (referenced by attribute @HeaderParam)";
+	enum msg = "No parameter 'ath' (referenced by attribute @headerParam)";
 
 	interface ITypo {
 		@headerParam("ath", "Authorization") // mistyped parameter name
@@ -1291,7 +1291,7 @@ unittest {
 	}
 	enum err = getInterfaceValidationError!ITypo;
 	static assert(err !is null && stripTestIdent(err) == msg,
-		"Expected validation error for getResponse, got "~err);
+		"Expected validation error for getResponse, got: "~stripTestIdent(err));
 }
 
 // Multiple origin for a parameter
@@ -1388,28 +1388,28 @@ unittest {
 		string getData(ref string auth);
 	}
 	static assert(stripTestIdent(getInterfaceValidationError!QueryRef)
-		== "Query parameter 'auth' cannot be ref");
+		== "query parameter 'auth' cannot be ref");
 
 	interface QueryOut {
 		@queryParam("auth", "auth")
 		void getData(out string auth);
 	}
 	static assert(stripTestIdent(getInterfaceValidationError!QueryOut)
-		== "Query parameter 'auth' cannot be out");
+		== "query parameter 'auth' cannot be out");
 
 	interface BodyRef {
 		@bodyParam("auth", "auth")
 		string getData(ref string auth);
 	}
 	static assert(stripTestIdent(getInterfaceValidationError!BodyRef)
-		== "Body parameter 'auth' cannot be ref");
+		== "body_ parameter 'auth' cannot be ref");
 
 	interface BodyOut {
 		@bodyParam("auth", "auth")
 		void getData(out string auth);
 	}
 	static assert(stripTestIdent(getInterfaceValidationError!BodyOut)
-		== "Body parameter 'auth' cannot be out");
+		== "body_ parameter 'auth' cannot be out");
 
 	// There's also the possibility of someone using an out unnamed
 	// parameter (don't ask me why), but this is catched as unnamed
@@ -1478,6 +1478,7 @@ unittest {
 	import std.traits, std.typetuple;
 	import vibe.internal.meta.codegen;
 	import vibe.internal.meta.typetuple;
+	import vibe.web.internal.rest.common : ParameterKind;
 
 	interface Policies {
 		@headerParam("auth", "Authorization")
@@ -1507,7 +1508,7 @@ unittest {
 			      Group!(__traits(getAttributes, IKeys!().create)),
 			      Group!(PathAttribute("/"),
 				     MethodAttribute(HTTPMethod.POST),
-				     WPA(WPA.Origin.Header, "auth", "Authorization"))));
+				     WPA(ParameterKind.header, "auth", "Authorization"))));
 
 	static if (__VERSION__ > 2065) {
 		void register() {

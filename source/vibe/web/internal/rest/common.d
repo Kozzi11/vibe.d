@@ -409,11 +409,11 @@ private void extractPathParts(ref Route route)
 unittest {
 	interface IDUMMY { void test(int dummy); }
 	class DUMMY : IDUMMY { void test(int) {} }
-	auto test = RestInterface!DUMMY(null);
+	auto test = RestInterface!DUMMY(null, false);
 }
 
 unittest {
 	interface IDUMMY {}
 	class DUMMY : IDUMMY {}
-	auto test = RestInterface!DUMMY(null);
+	auto test = RestInterface!DUMMY(null, false);
 }
